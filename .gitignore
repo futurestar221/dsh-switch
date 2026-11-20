@@ -1,0 +1,36 @@
+# Runtime and personal data
+instances.json
+instances.json.*
+current.json
+disable-auth.txt
+web.port
+server.json
+launcher.log
+*.log
+.test-home/
+acl-recovery/
+preview/
+web/edge-profile/
+web/edge-headless/
+.local-archive*/
+*.bak*
+*.tmp
+*预览.png
+
+# Build and release output
+app/
+dist/
+.build/
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.cache
+
+# Local tooling
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

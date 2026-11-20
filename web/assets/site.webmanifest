@@ -1,0 +1,23 @@
+{
+  "name": "dsh-switch",
+  "short_name": "dsh-switch",
+  "description": "DSH 多环境切换器",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F7FB",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "/assets/dsh-manager-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/dsh-manager-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

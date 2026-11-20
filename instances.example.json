@@ -1,0 +1,15 @@
+{
+  "lastHome": "",
+  "instances": [
+    {
+      "name": "Default",
+      "home": "%USERPROFILE%\\.dsh",
+      "agents": "%USERPROFILE%\\.agents"
+    },
+    {
+      "name": "Test",
+      "home": "%USERPROFILE%\\dsh-envs\\test\\home",
+      "agents": "%USERPROFILE%\\dsh-envs\\test\\agents"
+    }
+  ]
+}

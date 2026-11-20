@@ -1,0 +1,1406 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh-switch</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/dsh-manager-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#4F46E5">
+<style>
+  :root{
+    --bg:#F6F7FB; --panel:#FFFFFF; --ink:#0F172A; --ink-2:#334155; --muted:#64748B;
+    --line:#E7EAF1; --line-2:#F1F3F8;
+    --accent:#4F46E5; --accent-2:#6366F1; --accent-soft:#EEF0FF;
+    --ok:#16A34A; --ok-soft:#ECFDF3; --danger:#DC2626; --danger-soft:#FEF2F2;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(15,23,42,.04), 0 12px 28px -18px rgba(15,23,42,.28);
+    --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+    --font:"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
+    font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  button,select,input{font:inherit;color:inherit}
+  button{cursor:pointer;border:0;background:none}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#D8DCE6;border-radius:99px;border:3px solid var(--bg)}
+  ::-webkit-scrollbar-thumb:hover{background:#C3C9D6}
+
+  .app{display:flex;height:100vh;overflow:hidden}
+
+  /* ---------- sidebar ---------- */
+  .side{
+    width:308px;flex:0 0 308px;display:flex;flex-direction:column;
+    height:100vh;background:var(--panel);border-right:1px solid var(--line);padding:20px 16px 14px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px}
+  .brand-dot{width:10px;height:10px;border-radius:4px;background:linear-gradient(135deg,var(--accent),#8B5CF6);box-shadow:0 0 0 4px var(--accent-soft)}
+  .brand h1{font-size:15px;font-weight:650;margin:0;letter-spacing:.2px}
+  .brand small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;letter-spacing:0}
+
+  .side-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:#94A3B8;font-weight:600;padding:0 8px 8px}
+  .side-label .side-note{font-size:9.5px;letter-spacing:0;text-transform:none;color:#A5B0C0;font-weight:500;white-space:nowrap}
+
+  .envs{list-style:none;margin:0;padding:0;overflow:auto;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;gap:6px}
+  .env{
+    position:relative;border-radius:12px;padding:10px 12px 10px 14px;border:1px solid transparent;
+    transition:background .15s ease,border-color .15s ease,transform .12s ease;cursor:pointer;
+  }
+  .env:hover{background:var(--line-2);transform:translateX(2px)}
+  .env.sel{background:var(--accent-soft);border-color:#DDE1FF}
+  .env.sel::before{content:"";position:absolute;left:4px;top:12px;bottom:12px;width:3px;border-radius:99px;background:var(--accent)}
+  .env-top{display:flex;align-items:center;gap:8px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#CBD5E1;flex:0 0 auto}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+  .env-name{flex:0 1 auto;min-width:0;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .env-home-tag{flex:0 0 auto;font-size:9px;font-weight:700;letter-spacing:.45px;color:#6366F1;background:#EEF0FF;border:1px solid #E0E3FF;border-radius:5px;padding:1px 5px;line-height:1.45;cursor:help}
+  .env-meta{margin-top:3px;font-size:11.5px;color:var(--muted);display:flex;gap:8px}
+  .env-meta span{white-space:nowrap}
+  .chip{margin-left:auto;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:99px;background:#F1F5F9;color:#64748B}
+  .chip.on{background:var(--ok-soft);color:var(--ok)}
+
+  .side-foot{margin-top:12px;padding-top:12px;border-top:1px solid var(--line-2);display:flex;gap:6px}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    height:36px;padding:0 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:550;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink-2);
+    transition:background .15s,border-color .15s,box-shadow .15s,transform .12s,color .15s;
+    box-shadow:var(--shadow-sm);
+  }
+  .btn:hover{background:#FAFBFD;border-color:#D9DEE9;transform:translateY(-1px);box-shadow:0 6px 14px -12px rgba(15,23,42,.45)}
+  .btn:active{transform:translateY(0)}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 16px -8px rgba(79,70,229,.75)}
+  .btn-primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+  .btn-danger{color:var(--danger);border-color:#F3D6D6;background:#fff}
+  .btn-danger:hover{background:var(--danger-soft);border-color:#EFC5C5}
+  .btn-quiet{border-color:transparent;background:transparent;box-shadow:none;color:var(--muted)}
+  .btn-quiet:hover{background:var(--line-2);color:var(--ink-2)}
+  .btn-migrate{color:#4338CA;border-color:#D9DDFE;background:linear-gradient(180deg,#FBFCFF,#F4F5FF);box-shadow:0 4px 14px -12px rgba(79,70,229,.7)}
+  .btn-migrate:hover{color:#3730A3;border-color:#C7CCFF;background:#F1F2FF}
+  .btn-sm{height:30px;padding:0 10px;font-size:12.5px;border-radius:8px}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+
+  /* ---------- main ---------- */
+  .main{flex:1 1 auto;min-width:0;height:100vh;overflow:auto;padding:24px 28px 28px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}
+
+  .hero{
+    display:flex;align-items:flex-start;gap:20px;padding:22px 24px;border-radius:var(--radius);
+    background:linear-gradient(180deg,#FFFFFF,#FBFCFE);border:1px solid var(--line);box-shadow:var(--shadow);
+  }
+  .hero-main{min-width:0;flex:1 1 auto}
+  .eyebrow{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#94A3B8;font-weight:600}
+  .hero h2{margin:6px 0 4px;font-size:26px;line-height:1.2;font-weight:680;letter-spacing:-.4px}
+  .path{font-size:12.5px;color:var(--muted);font-family:"Cascadia Mono",Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .home-line{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%}
+  .home-key{display:inline-flex;align-items:center;height:19px;padding:0 6px;border-radius:5px;background:#EEF0FF;border:1px solid #E0E3FF;color:#6366F1;font-size:9px;font-weight:700;letter-spacing:.55px}
+  .home-path{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font:12.5px/1.5 "Cascadia Mono",Consolas,monospace}
+  .home-explain{display:flex;align-items:flex-start;gap:6px;margin-top:4px;font-size:11px;line-height:1.5;color:#94A3B8;max-width:620px}
+  .home-explain::before{content:"";width:5px;height:5px;border-radius:50%;background:#A5B4FC;flex:0 0 auto;margin-top:6px}
+  .hero-act{display:flex;align-items:center;gap:10px;flex:0 0 auto;padding-top:4px}
+  .state{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:99px;font-size:12.5px;font-weight:600;background:#F1F5F9;color:#64748B}
+  .state.on{background:var(--ok-soft);color:#15803D}
+  .state.busy{background:#FFF7ED;color:#C2410C}
+  .state .dot{width:6px;height:6px;background:#94A3B8}
+  .state.on .dot{background:var(--ok)}
+  .state.busy .dot{background:#F59E0B;animation:pulse 1.1s ease-in-out infinite}
+  .hero-context{display:flex;align-items:center;gap:8px;margin-top:10px;min-width:0}
+  .profile-glance{display:inline-flex;align-items:center;gap:7px;height:30px;max-width:100%;padding:0 11px;border:1px solid #DFE3FF;border-radius:99px;background:linear-gradient(180deg,#fff,#F7F8FF);color:#4338CA;font-size:12px;font-weight:600;box-shadow:var(--shadow-sm);transition:border-color .16s,box-shadow .16s,transform .16s}
+  .profile-glance:hover{border-color:#C7CCFF;box-shadow:0 8px 18px -14px rgba(79,70,229,.65);transform:translateY(-1px)}
+  .profile-glance:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .profile-glance .pg-k{font-weight:500;color:#818CF8}
+  .profile-glance b{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .profile-glance .pg-arrow{color:#A5B4FC;font-size:14px;line-height:1}
+
+  .profile-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,330px);gap:18px 24px;padding:20px 20px 18px 24px;border-color:#DEE2FF;background:linear-gradient(135deg,#fff 0%,#FCFCFF 60%,#F6F7FF 100%);box-shadow:0 1px 2px rgba(15,23,42,.04),0 18px 42px -32px rgba(79,70,229,.55);overflow:hidden}
+  .profile-card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:4px;border-radius:0 99px 99px 0;background:linear-gradient(180deg,var(--accent),#8B5CF6)}
+  .profile-lead{display:flex;align-items:flex-start;gap:14px;min-width:0}
+  .profile-mark{display:grid;place-items:center;width:44px;height:44px;flex:0 0 auto;border-radius:14px;background:linear-gradient(135deg,var(--accent),#8B5CF6);box-shadow:0 10px 22px -14px rgba(79,70,229,.9)}
+  .profile-mark svg{width:23px;height:23px;display:block}
+  .profile-copy{min-width:0;flex:1 1 auto}
+  .profile-kicker{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11.5px;font-weight:600;letter-spacing:.2px}
+  .profile-tag{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;background:#ECEEFF;color:#6366F1;font-size:9px;font-weight:700;letter-spacing:.7px}
+  .profile-current-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:3px}
+  .profile-current-line strong{font-size:23px;line-height:1.2;font-weight:680;letter-spacing:-.35px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .profile-current-badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:99px;background:var(--ok-soft);color:#15803D;font-size:10.5px;font-weight:650}
+  .profile-current-badge[hidden]{display:none}
+  .profile-explain{margin:5px 0 0;font-size:12px;line-height:1.6;color:#64748B;max-width:560px}
+  .profile-note{display:flex;align-items:flex-start;gap:7px;margin-top:7px;font-size:11.5px;line-height:1.55;color:#64748B;min-height:18px}
+  .profile-note::before{content:"";width:6px;height:6px;border-radius:50%;background:#94A3B8;flex:0 0 auto;margin-top:6px}
+  .profile-note.warn{color:#B45309}
+  .profile-note.warn::before{background:#F59E0B}
+  .profile-note.ok{color:#15803D}
+  .profile-note.ok::before{background:var(--ok)}
+  .profile-switch{align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:13px;border:1px solid #E5E7FF;border-radius:14px;background:rgba(255,255,255,.82);min-width:0}
+  .profile-switch-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .profile-switch-head label{font-size:12px;font-weight:650;color:var(--ink-2)}
+  .profile-count{font-size:11px;color:#94A3B8;white-space:nowrap}
+  .profile-controls{display:flex;align-items:center;gap:8px;min-width:0}
+  .profile-controls select{flex:1 1 auto;min-width:0;height:38px}
+  .profile-controls .btn{height:38px;flex:0 0 auto;min-width:96px}
+  .profile-actions{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:13px;border-top:1px solid #E8EBFF}
+  .profile-actions .btn{height:30px}
+  .profile-actions .hint{margin-left:auto;font-size:11.5px}
+  .profile-card.updated{animation:profileFlash .7s cubic-bezier(.2,.8,.2,1)}
+  @keyframes profileFlash{0%{box-shadow:0 1px 2px rgba(15,23,42,.04),0 18px 42px -32px rgba(79,70,229,.55)}42%{border-color:#BFC5FF;box-shadow:0 0 0 4px rgba(99,102,241,.1),0 20px 46px -30px rgba(79,70,229,.65)}100%{box-shadow:0 1px 2px rgba(15,23,42,.04),0 18px 42px -32px rgba(79,70,229,.55)}}
+  @media (max-width:1000px){.profile-card{grid-template-columns:1fr}.profile-actions .hint{margin-left:0;flex-basis:100%}}
+
+  .setup-alert{display:flex;align-items:center;gap:14px;padding:13px 16px;border:1px solid #FDE68A;background:linear-gradient(90deg,#FFFBEB,#FFF7ED);border-radius:14px;color:#92400E;box-shadow:var(--shadow-sm);animation:rise .25s ease-out both}
+  .setup-alert[hidden]{display:none}
+  .setup-alert .alert-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#FDE68A;color:#92400E;font-size:17px;font-weight:700;flex:0 0 auto}
+  .setup-alert .alert-copy{min-width:0;flex:1 1 auto;font-size:12.5px}
+  .setup-alert .alert-copy b{display:block;font-size:13px;margin-bottom:1px}
+
+  .busy-bar{display:none;align-items:center;gap:10px;padding:10px 14px;border:1px solid #E0E7FF;background:#F8FAFF;border-radius:12px;color:var(--ink-2);font-size:12.5px;box-shadow:var(--shadow-sm)}
+  .busy-bar.show{display:flex;animation:rise .2s ease-out both}
+  .busy-spinner{width:15px;height:15px;border:2px solid #C7D2FE;border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;flex:0 0 auto}
+  .busy-copy{min-width:0;flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .busy-track{height:4px;flex:1 1 auto;min-width:60px;border-radius:99px;background:#E0E7FF;overflow:hidden}
+  .busy-track i{display:block;width:36%;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),#8B5CF6);animation:indeterminate 1.15s ease-in-out infinite}
+
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .stat{min-width:0;padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow-sm);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .stat:hover{transform:translateY(-2px);border-color:#DDE1FF;box-shadow:0 10px 22px -18px rgba(79,70,229,.5)}
+  .stat .k{font-size:11.5px;color:var(--muted);letter-spacing:.3px}
+  .stat .v{margin-top:4px;font-size:19px;font-weight:650;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .stat .v.small{font-size:12.5px;font-weight:500;color:var(--ink-2);font-family:"Cascadia Mono",Consolas,monospace}
+  .stat .v.path{font-size:12px;font-weight:500;line-height:1.45;color:var(--ink-2);font-family:"Cascadia Mono",Consolas,monospace}
+
+  .card{padding:18px 20px;border-radius:var(--radius);background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+  .card-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+  .card-head h3{margin:0;font-size:14.5px;font-weight:650;letter-spacing:-.1px}
+  .hint{font-size:12px;color:#94A3B8}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  select{
+    height:36px;padding:0 34px 0 12px;border-radius:var(--radius-sm);border:1px solid var(--line);
+    background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 10px center;
+    appearance:none;box-shadow:var(--shadow-sm);min-width:190px;font-weight:550;
+  }
+  select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:40;background:rgba(15,23,42,.32);backdrop-filter:blur(2px)}
+  .modal.open{display:flex}
+  .modal.open .modal-card{animation:pop .18s cubic-bezier(.2,.8,.2,1) both}
+  .modal-card{width:540px;max-width:92vw;max-height:90vh;overflow:auto;background:var(--panel);border-radius:var(--radius);box-shadow:0 28px 70px -28px rgba(15,23,42,.55);padding:20px 22px}
+  .modal-card.modal-wide{width:640px}
+  .modal-card h3{margin:0 0 14px;font-size:15px;font-weight:650}
+  .modal-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .modal-head h3{margin:0;flex:1 1 auto}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field input{width:100%;height:36px;padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--line);background:#fff;transition:border-color .15s,box-shadow .15s}
+  .field input:focus{outline:0;border-color:#C7D2FE;box-shadow:0 0 0 3px var(--accent-soft)}
+  .field input.mono{font-family:"Cascadia Mono",Consolas,monospace;font-size:12.5px}
+  .field .row{gap:8px}
+  .modal .hint{margin:-2px 0 14px}
+  .modal .hint.tight{margin:6px 0 0;line-height:1.55}
+  .seg{display:flex;gap:4px;padding:4px;background:#F1F5F9;border-radius:11px;margin-bottom:16px}
+  .seg button{flex:1;height:30px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);transition:background .15s,color .15s,box-shadow .15s}
+  .seg button.active{background:#fff;color:var(--accent);box-shadow:var(--shadow-sm)}
+  .modal-error{padding:10px 12px;border-radius:10px;background:var(--danger-soft);color:#991B1B;font-size:12.5px;margin:-4px 0 14px;line-height:1.55}
+  .migrate-current{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#F8FAFC;margin-bottom:14px}
+  .migrate-current span{flex:0 0 auto;color:var(--muted);font-size:12px;line-height:1.7}
+  .migrate-current code{min-width:0;font:11.5px/1.65 "Cascadia Mono",Consolas,monospace;color:var(--ink-2);word-break:break-all}
+  .check{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;margin:0 0 10px;border-radius:10px;background:#F8FAFF;border:1px solid #E8EBFF;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+  .check input{width:15px;height:15px;margin:2px 0 0;accent-color:var(--accent);flex:0 0 auto}
+  .check b{font-weight:600;color:var(--ink)}
+  .callout{padding:10px 12px;border-radius:10px;background:#FFF8ED;border:1px solid #FDE7C7;color:#92400E;font-size:12px;line-height:1.6;margin:4px 0 12px}
+  .field.disabled{opacity:.52}
+
+  /* ---------- shortcut list ---------- */
+  .sc-list{display:flex;flex-direction:column;gap:6px}
+  .sc-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#FCFDFF;transition:background .15s,border-color .15s,transform .15s}
+  .sc-row:hover{background:#fff;border-color:#DDE1FF}
+  .sc-row.off{opacity:.55;background:#F8FAFC}
+  .sc-name{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 0 220px}
+  .sc-target{font-size:11.5px;color:var(--muted);font-family:"Cascadia Mono",Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0}
+  .sc-tag{font-size:10.5px;padding:2px 7px;border-radius:99px;background:#F1F5F9;color:#64748B;flex:0 0 auto}
+  .sc-tag.self{background:var(--accent-soft);color:var(--accent)}
+  .sc-row>.btn{flex:0 0 auto;white-space:nowrap;min-width:56px}
+
+  /* ---------- drawer ---------- */
+  .drawer{
+    position:fixed;inset:0;display:none;z-index:20;
+  }
+  .drawer.open{display:block}
+  .scrim{position:absolute;inset:0;background:rgba(15,23,42,.28);backdrop-filter:blur(1px)}
+  .sheet{
+    position:absolute;right:0;top:0;bottom:0;width:min(720px,92vw);background:var(--panel);
+    box-shadow:-24px 0 48px -24px rgba(15,23,42,.35);display:flex;flex-direction:column;
+    animation:slide .18s ease-out;
+  }
+  @keyframes slide{from{transform:translateX(16px);opacity:.6}to{transform:none;opacity:1}}
+  .sheet-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line-2)}
+  .sheet-head h3{margin:0;font-size:15px;font-weight:650}
+  .sheet-body{flex:1 1 auto;overflow:auto;padding:16px 20px 24px}
+  .sec-title{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#94A3B8;font-weight:600;margin:14px 0 8px}
+  .sec-title:first-child{margin-top:0}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-weight:600;color:var(--muted);background:#F8FAFC;padding:8px 10px;border-bottom:1px solid var(--line);position:sticky;top:0}
+  td{padding:7px 10px;border-bottom:1px solid var(--line-2);vertical-align:top}
+  td.mono,.mono{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;color:var(--ink-2)}
+  .empty{color:#94A3B8;font-size:12.5px;padding:10px 2px}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);opacity:0;pointer-events:none;
+    background:#0F172A;color:#F8FAFC;font-size:12.5px;padding:9px 16px;border-radius:99px;
+    box-shadow:0 12px 32px -12px rgba(15,23,42,.6);transition:opacity .18s,transform .18s;max-width:70vw;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:40;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.err{background:#7F1D1D}
+  .toast.ok{background:#14532D}
+
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+  @keyframes indeterminate{0%{transform:translateX(-120%)}100%{transform:translateX(300%)}}
+  .main>*{flex:0 0 auto;animation:rise .28s cubic-bezier(.2,.8,.2,1) both}
+  .main>*:nth-child(2){animation-delay:.02s}
+  .main>*:nth-child(3){animation-delay:.04s}
+  .main>*:nth-child(4){animation-delay:.06s}
+  .main>*:nth-child(5){animation-delay:.08s}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+<div id="offline" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:10px 16px;font:600 13px/1.6 system-ui,'Segoe UI',sans-serif;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.25)">
+  后台服务已断开（dsh-switch 进程没了）。请双击桌面「dsh-switch」重新打开；本页会自动重连并刷新。
+</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <div>
+        <h1>dsh-switch</h1>
+        <small>DSH 多环境切换器</small>
+      </div>
+    </div>
+    <div class="side-label"><span>环境</span><span class="side-note" title="HOME 是这个环境专用的数据目录">HOME = 数据目录</span></div>
+    <ul class="envs" id="envs"></ul>
+    <div class="side-foot">
+      <button class="btn btn-sm" style="flex:1;min-width:0" id="btnAdd">+ 新建环境</button>
+      <button class="btn btn-sm btn-quiet" id="btnSettings" title="程序与目录设置">设置</button>
+      <button class="btn btn-sm btn-quiet" id="btnLog">日志</button>
+      <button class="btn btn-sm btn-quiet" id="btnQuit" title="关闭管理界面（不影响 DSH 本身）">退出</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="setup-alert" id="setupAlert" hidden>
+      <span class="alert-icon">!</span>
+      <div class="alert-copy"><b>还没有找到 DSH 程序</b>自动检测没有找到安装路径。先选择 DeepSeek Harness.exe，管理器才能启动环境。</div>
+      <button class="btn btn-sm" id="btnSetupNow">去设置</button>
+    </section>
+
+    <section class="hero">
+      <div class="hero-main">
+        <div class="eyebrow">当前选中的环境</div>
+        <h2 id="curName">—</h2>
+        <div class="home-line" title="HOME 是这个环境专用的数据目录">
+          <span class="home-key">HOME</span><span class="home-path" id="curHome">—</span>
+        </div>
+        <div class="home-explain">这个环境专用的数据目录；聊天记录、登录信息和插件都保存在这里。</div>
+        <div class="hero-context">
+          <button type="button" class="profile-glance" id="heroProfilePill" title="查看或切换当前配置方案">
+            <span class="pg-k">配置方案</span><b id="heroProfileName">读取中…</b><span class="pg-arrow">›</span>
+          </button>
+        </div>
+      </div>
+      <div class="hero-act">
+        <span class="state" id="state"><span class="dot"></span><span id="stateText">未运行</span></span>
+        <button class="btn btn-primary" id="btnStart"><span id="btnStartText">启动</span></button>
+        <button class="btn" id="btnStop"><span id="btnStopText">停止</span></button>
+      </div>
+    </section>
+
+    <section class="busy-bar" id="busyBar" aria-live="polite">
+      <span class="busy-spinner"></span>
+      <span class="busy-copy" id="busyText">正在处理…</span>
+      <span class="busy-track"><i></i></span>
+    </section>
+
+    <section class="card profile-card" id="profileCard" aria-labelledby="profHeading">
+      <div class="profile-lead">
+        <div class="profile-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-9 5 9 5 9-5-9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>
+          </svg>
+        </div>
+        <div class="profile-copy">
+          <div class="profile-kicker" id="profHeading">当前配置方案 <span class="profile-tag">PROFILE</span></div>
+          <div class="profile-current-line">
+            <strong id="profCurrentName" aria-live="polite">读取中…</strong>
+            <span class="profile-current-badge" id="profCurrentBadge" hidden>正在使用</span>
+          </div>
+          <p class="profile-explain">决定这个环境加载哪些插件和启动项；不会替换聊天记录、登录状态或环境目录。</p>
+          <div class="profile-note" id="profNote" role="status">正在读取配置方案…</div>
+        </div>
+      </div>
+      <div class="profile-switch">
+        <div class="profile-switch-head">
+          <label for="profSel">切换到其他方案</label>
+          <span class="profile-count" id="profCount">读取中…</span>
+        </div>
+        <div class="profile-controls">
+          <select id="profSel" aria-label="选择配置方案"></select>
+          <button class="btn btn-primary" id="profUse">切换方案</button>
+        </div>
+      </div>
+      <div class="profile-actions">
+        <button class="btn btn-sm" id="profNew">+ 新建方案</button>
+        <button class="btn btn-sm" id="profRollback" title="恢复到上一次切换前的配置方案">撤销上次切换</button>
+        <button class="btn btn-sm btn-danger" id="profDel" title="删除所选方案（当前方案不可删除）">删除所选方案…</button>
+        <span class="hint">切换前需要停止 DSH；聊天与登录不受影响。</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="stat"><div class="k">插件</div><div class="v" id="stPlugins">0</div></div>
+      <div class="stat"><div class="k">技能</div><div class="v" id="stSkills">0</div></div>
+      <div class="stat"><div class="k">环境目录 · HOME</div><div class="v path" id="stWhere">—</div></div>
+      <div class="stat"><div class="k">技能目录</div><div class="v small" id="stAgents">—</div></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3>操作</h3><span class="hint">迁移会搬目录；编辑信息只改记录</span></div>
+      <div class="row">
+        <button class="btn btn-sm" id="btnInv">插件 / 技能</button>
+        <button class="btn btn-sm" id="btnFolder" title="打开当前环境的 HOME 数据目录">打开 HOME</button>
+        <button class="btn btn-sm btn-migrate" id="btnMigrate">迁移…</button>
+        <button class="btn btn-sm" id="btnEdit">编辑信息</button>
+        <button class="btn btn-sm btn-danger" id="btnDelDir">删除目录…</button>
+        <button class="btn btn-sm btn-danger" id="btnRemove">从列表移除</button>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <h3>回收站</h3>
+        <span class="hint">删除的目录先放这里，可恢复；清空才真正删除</span>
+      </div>
+      <div id="trashList" class="sc-list"><div class="empty">空</div></div>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <h3>桌面快捷方式（DSH 相关）</h3>
+        <span class="hint">隐藏 = 移到管理器备份目录，随时恢复</span>
+      </div>
+      <div id="scList" class="sc-list"><div class="empty">读取中…</div></div>
+    </section>
+  </main>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="scrim" onclick="closeDrawer()"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="sheetTitle">插件与技能</h3>
+      <button class="btn btn-sm btn-quiet" style="margin-left:auto" onclick="closeDrawer()">关闭</button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="neModal" role="dialog" aria-modal="true" aria-labelledby="neTitle">
+  <div class="modal-card">
+    <h3 id="neTitle">新建环境</h3>
+    <div class="seg" id="neSeg">
+      <button type="button" class="active" data-mode="new">新建空白环境</button>
+      <button type="button" data-mode="existing">添加已有环境</button>
+    </div>
+    <div class="field">
+      <label for="neName">名字</label>
+      <input id="neName" placeholder="工作 / 试验" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="neHome" id="neHomeLabel">环境目录（HOME）</label>
+      <div class="row">
+        <input id="neHome" class="mono" style="flex:1;min-width:0" placeholder="留空 = 默认目录" autocomplete="off">
+        <button class="btn btn-sm" id="neBrowse">浏览…</button>
+      </div>
+    </div>
+    <div class="hint" id="neHint">目录必须不存在或为空；不能放在系统目录。</div>
+    <div class="modal-error" id="neError" hidden></div>
+    <div class="row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn" id="neCancel">取消</button>
+      <button class="btn btn-primary" id="neOk"><span id="neOkText">创建</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="modal-card">
+    <h3 id="editTitle">编辑环境</h3>
+    <div class="field"><label for="editName">名字</label><input id="editName" autocomplete="off"></div>
+    <div class="field"><label for="editHome">环境目录（HOME）</label><input id="editHome" class="mono" autocomplete="off"></div>
+    <div class="field"><label for="editAgents">技能目录</label><input id="editAgents" class="mono" autocomplete="off" placeholder="留空 = 默认 ~\\.agents"></div>
+    <div class="hint">这里只改环境记录，不会搬动文件。要把目录搬到别处，请关闭本窗口后使用「迁移…」。</div>
+    <div class="modal-error" id="editError" hidden></div>
+    <div class="row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn" id="editCancel">取消</button>
+      <button class="btn btn-primary" id="editSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="migrateModal" role="dialog" aria-modal="true" aria-labelledby="migrateTitle">
+  <div class="modal-card modal-wide">
+    <div class="modal-head"><h3 id="migrateTitle">迁移环境目录</h3><span class="hint" id="migrateName"></span></div>
+    <div class="migrate-current"><span>当前位置</span><code id="migrateFrom"></code></div>
+    <div class="field">
+      <label for="migrateHome">新环境目录（HOME）</label>
+      <div class="row">
+        <input id="migrateHome" class="mono" style="flex:1;min-width:0" autocomplete="off" placeholder="例如 D:\dsh-envs\work\home">
+        <button class="btn btn-sm" id="migrateBrowseHome">浏览…</button>
+      </div>
+      <div class="hint tight">新目录必须不存在或为空，不能放在当前环境里面。</div>
+    </div>
+    <label class="check" id="migrateAgentsCheck">
+      <input type="checkbox" id="migrateAgents">
+      <span><b>同时迁移技能目录</b><br><span id="migrateAgentsHelp">把独立的 agents 目录也搬到新位置；不勾选则保持原样。</span></span>
+    </label>
+    <div class="field" id="migrateAgentsField">
+      <label for="migrateAgentsPath">新技能目录</label>
+      <div class="row">
+        <input id="migrateAgentsPath" class="mono" style="flex:1;min-width:0" autocomplete="off" placeholder="例如 D:\dsh-envs\work\agents">
+        <button class="btn btn-sm" id="migrateBrowseAgents">浏览…</button>
+      </div>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="migrateRetire">
+      <span><b>迁移成功后把原目录移到回收站</b><br>默认不勾选，原目录会保留；勾选后可从回收站恢复。</span>
+    </label>
+    <div class="callout">迁移前会自动停止所有 DSH 实例。程序会先复制并校验，只有校验通过才会切换记录；失败时原环境保持可用。</div>
+    <div class="modal-error" id="migrateError" hidden></div>
+    <div class="row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn" id="migrateCancel">取消</button>
+      <button class="btn btn-primary" id="migrateOk"><span id="migrateOkText">开始迁移</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="profModal" role="dialog" aria-modal="true" aria-labelledby="profTitle">
+  <div class="modal-card">
+    <h3 id="profTitle">新建配置方案</h3>
+    <div class="field"><label for="profName">方案名</label><input id="profName" autocomplete="off" placeholder="custom" spellcheck="false"></div>
+    <div class="hint">只能使用英文、数字、点、下划线、横线。新方案不会自动安装插件。</div>
+    <div class="modal-error" id="profError" hidden></div>
+    <div class="row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn" id="profCancel">取消</button>
+      <button class="btn btn-primary" id="profCreate">创建</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal-card modal-wide">
+    <div class="modal-head"><h3 id="settingsTitle">设置</h3><span class="hint" id="setSource"></span></div>
+    <div class="field">
+      <label for="setExe">DSH 程序路径</label>
+      <div class="row">
+        <input id="setExe" class="mono" style="flex:1;min-width:0" autocomplete="off" placeholder="D:\\Apps\\DSH\\DeepSeek Harness.exe">
+        <button class="btn btn-sm" id="setBrowseExe">浏览…</button>
+      </div>
+      <div class="hint" style="margin:6px 0 0" id="setExeHint">用于启动各个实例的 DeepSeek Harness.exe。</div>
+    </div>
+    <div class="field">
+      <label for="setRoot">新建环境时的默认位置</label>
+      <div class="row">
+        <input id="setRoot" class="mono" style="flex:1;min-width:0" autocomplete="off">
+        <button class="btn btn-sm" id="setBrowseRoot">浏览…</button>
+      </div>
+      <div class="hint tight">只用于新建环境时自动填入建议路径。每个环境都可以选择任意位置，不会被强行归到某个目录。</div>
+    </div>
+    <div class="modal-error" id="setError" hidden></div>
+    <div class="row" style="justify-content:space-between;margin-top:4px">
+      <button class="btn btn-sm" id="setDetect">自动检测程序</button>
+      <div class="row" style="gap:8px">
+        <button class="btn" id="setCancel">取消</button>
+        <button class="btn btn-primary" id="setSave">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="forceModal" role="dialog" aria-modal="true" aria-labelledby="forceTitle">
+  <div class="modal-card">
+    <h3 id="forceTitle">配置预检未通过</h3>
+    <div class="modal-error" id="forceSummary"></div>
+    <div class="hint">如果你确认这个配置没有问题，可以仍然启动。启动失败时请查看日志。</div>
+    <div class="row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn" id="forceCancel">取消</button>
+      <button class="btn btn-primary" id="forceOk">仍然启动</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="delModal" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+  <div class="modal-card">
+    <h3 id="delTitle">删除环境目录</h3>
+    <div class="hint" id="delInfo"></div>
+    <div class="field">
+      <label>输入环境名字确认：<b id="delName"></b></label>
+      <input id="delConfirm" autocomplete="off" placeholder="输入上面的名字">
+    </div>
+    <div class="hint">目录会被移动到管理器的回收站，不是立刻删除；之后可以在「回收站」里恢复或清空。</div>
+    <div class="row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn" id="delCancel">取消</button>
+      <button class="btn btn-danger" id="delOk">移到回收站</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let S = { instances: [], current: null, exe: "", log: "" };
+let sel = null;          // 选中的 home
+let busy = false;
+let busyKind = "";
+let profCache = [];
+let profHome = "";
+let profSeq = 0;
+let lastFocus = null;
+
+function toast(msg, isErr) {
+  const t = $("#toast");
+  t.textContent = msg; t.className = "toast show" + (isErr ? " err" : " ok");
+  clearTimeout(t._h); t._h = setTimeout(() => t.className = "toast", isErr ? 3800 : 2600);
+}
+async function api(path, opts) {
+  const r = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json", "X-Dshm": "1" } }, opts || {}));
+  const j = await r.json().catch(() => ({ ok: false, message: "响应解析失败" }));
+  return j;
+}
+const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body || {}) });
+
+function setInlineError(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg || "";
+  el.hidden = !msg;
+}
+function openModal(id, focusSelector) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  if (!document.querySelector(".modal.open")) lastFocus = document.activeElement;
+  m.classList.add("open");
+  setTimeout(() => {
+    const target = focusSelector ? m.querySelector(focusSelector) : m.querySelector("input:not([disabled]),select:not([disabled]),button:not([disabled])");
+    if (target) target.focus();
+  }, 35);
+}
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.classList.remove("open");
+  if (!document.querySelector(".modal.open") && lastFocus && document.contains(lastFocus)) {
+    try { lastFocus.focus(); } catch (e) {}
+  }
+}
+function activeModal() { return [...document.querySelectorAll(".modal.open")].pop() || null; }
+function closeTopOverlay() {
+  if ($("#drawer").classList.contains("open")) { closeDrawer(); return; }
+  const m = activeModal();
+  if (m) closeModal(m.id);
+}
+document.querySelectorAll(".modal").forEach(m => {
+  m.addEventListener("mousedown", e => { if (e.target === m) closeModal(m.id); });
+});
+document.addEventListener("keydown", e => {
+  const m = activeModal();
+  if (e.key === "Escape") { closeTopOverlay(); return; }
+  if (!m) return;
+  if (e.key === "Tab") {
+    const items = [...m.querySelectorAll("input:not([disabled]),select:not([disabled]),button:not([disabled]),[tabindex='0']")].filter(el => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+  if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") {
+    const map = { neName: "neOk", neHome: "neOk", delConfirm: "delOk", profName: "profCreate", setExe: "setSave", setRoot: "setSave", editName: "editSave", editHome: "editSave", editAgents: "editSave", migrateHome: "migrateOk", migrateAgentsPath: "migrateOk" };
+    const id = map[e.target.id];
+    if (id) { e.preventDefault(); document.getElementById(id)?.click(); }
+  }
+});
+
+// ---- 断线检测：后台服务没了就在顶部显示红条，恢复后自动刷新页面 ----
+window.__offline = false;
+let __wasOffline = false;
+async function ping() {
+  try {
+    const r = await fetch("/api/state", { headers: { "X-Dshm": "1" }, cache: "no-store" });
+    if (!r.ok) throw new Error("http " + r.status);
+    window.__offline = false;
+    if (__wasOffline) { __wasOffline = false; location.reload(); return; }
+    const b = document.getElementById("offline");
+    if (b) b.style.display = "none";
+  } catch (e) {
+    window.__offline = true;
+    __wasOffline = true;
+    const b = document.getElementById("offline");
+    if (b) b.style.display = "block";
+  }
+}
+
+function cur() { return S.instances.find(i => i.home === sel) || S.instances[0]; }
+
+function render() {
+  const c = cur();
+  if (c && !sel) sel = c.home;
+  if (sel && !S.instances.some(i => i.home === sel)) sel = c ? c.home : null;
+
+  // 侧栏
+  const ul = $("#envs");
+  const keepScroll = ul.scrollTop;
+  ul.innerHTML = S.instances.map(i => `
+    <li class="env ${i.home === sel ? "sel" : ""}" data-home="${encodeURIComponent(i.home)}" title="HOME：${esc(i.home)}">
+      <div class="env-top">
+        <span class="dot ${i.running ? "on" : ""}"></span>
+        <span class="env-name">${esc(i.name)}</span>
+        <span class="env-home-tag" title="HOME 是这个环境专用的数据目录">HOME</span>
+        <span class="chip ${i.running ? "on" : ""}">${i.running ? "运行中" : (i.exists ? "空闲" : "目录缺失")}</span>
+      </div>
+      <div class="env-meta">
+        <span>${i.plugins} 插件</span><span>${i.skills} 技能</span>
+        ${i.health && (i.health.status === "err" || i.health.status === "warn") ? `<span style="color:#DC2626" title="${esc(i.health.summary)}">⚠ 配置异常</span>` : (i.health && i.health.status === "new" ? `<span style="color:#94A3B8" title="${esc(i.health.summary)}">新建</span>` : "")}
+      </div>
+    </li>`).join("");
+  ul.scrollTop = keepScroll;
+  [...ul.querySelectorAll(".env")].forEach(el => {
+    el.onclick = () => {
+      if (busy) return;
+      sel = decodeURIComponent(el.dataset.home); render(); loadProfiles();
+    };
+  });
+
+  // 主区
+  $("#curName").textContent = c ? c.name : "—";
+  $("#curHome").textContent = c ? c.home : "—";
+  $("#curHome").title = c ? c.home : "";
+  $("#stPlugins").textContent = c ? c.plugins : 0;
+  $("#stSkills").textContent = c ? c.skills : 0;
+  $("#stWhere").textContent = c ? c.home : "—";
+  $("#stWhere").title = c ? c.home : "";
+  $("#stAgents").textContent = c ? (c.agents || "默认") : "—";
+  $("#stAgents").title = c ? (c.agents || "默认") : "";
+
+  $("#setupAlert").hidden = !!S.exe;
+
+  const running = !!(c && c.running);
+  let stateCls = "state", stateText = running ? "运行中" : (S.anyRunning ? "其他环境在运行" : "未运行");
+  if (busy) {
+    stateCls = "state busy";
+    stateText = busyKind === "stop" ? "正在停止…" : busyKind === "start" ? "正在启动…" : "处理中…";
+  } else if (running) stateCls = "state on";
+  $("#state").className = stateCls;
+  $("#stateText").textContent = stateText;
+
+  $("#busyBar").classList.toggle("show", busy);
+  if (busy) {
+    const label = busyKind === "stop" ? "正在安全关闭 DSH，未响应会自动强制结束…" : busyKind === "start" ? "正在启动环境，等待窗口出现…" : busyKind === "migrate" ? "正在复制并校验环境，目录较大时需要一些时间…" : "正在处理，请稍候…";
+    $("#busyText").textContent = label;
+  }
+
+  const startLabel = busyKind === "start" ? "启动中…" : running ? "重新启动" : (S.anyRunning ? "切换到此环境" : "启动");
+  $("#btnStartText").textContent = S.exe ? startLabel : "先设置程序";
+  $("#btnStopText").textContent = busyKind === "stop" ? "停止中…" : "停止";
+  $("#btnStart").disabled = busy || !c;
+  $("#btnStart").title = S.exe ? "" : "先设置 DeepSeek Harness.exe";
+  $("#btnStop").disabled = busy || !S.anyRunning;
+  $("#btnAdd").disabled = busy;
+  $("#btnSettings").disabled = busy;
+  $("#btnLog").disabled = busy;
+  $("#btnInv").disabled = !c;
+  $("#btnFolder").disabled = !c;
+  $("#btnEdit").disabled = !c;
+  $("#btnMigrate").disabled = !c || busy;
+  $("#btnRemove").disabled = !c;
+  $("#profNew").disabled = busy || !c;
+  syncProfileControls();
+}
+
+function profilesReady() {
+  const c = cur();
+  return !!(c && profHome === c.home);
+}
+function currentProfile() {
+  return profilesReady() ? (profCache.find(p => p.current) || null) : null;
+}
+function selectedProfile() {
+  return profilesReady() ? (profCache.find(p => p.name === $("#profSel").value) || null) : null;
+}
+function setProfileNote(text, kind) {
+  const el = $("#profNote");
+  el.textContent = text;
+  el.className = "profile-note" + (kind ? " " + kind : "");
+}
+function syncProfileControls() {
+  const c = cur();
+  const ready = profilesReady();
+  const curP = currentProfile();
+  const p = selectedProfile();
+  const running = !!S.anyRunning;
+  const currentName = curP ? curP.name : (ready ? "暂无方案" : (c ? "读取中…" : "—"));
+
+  $("#heroProfileName").textContent = currentName;
+  $("#profCurrentName").textContent = currentName;
+  $("#profCurrentBadge").hidden = !curP;
+  $("#profCount").textContent = ready ? `${profCache.length} 个方案` : (c ? "读取中…" : "—");
+  $("#profSel").disabled = busy || !c || !ready || !profCache.length;
+  $("#profNew").disabled = busy || !c;
+  $("#profRollback").disabled = busy || !c || running;
+
+  const isCurrent = !!(p && p.current);
+  const canSwitch = !!(c && p && !isCurrent && !busy && !running);
+  $("#profUse").disabled = !canSwitch;
+  if (isCurrent) $("#profUse").textContent = "正在使用";
+  else if (running) $("#profUse").textContent = "先停止 DSH";
+  else if (busy) $("#profUse").textContent = "处理中…";
+  else if (!p) $("#profUse").textContent = "选择方案";
+  else $("#profUse").textContent = "切换方案";
+
+  $("#profDel").disabled = busy || !c || !p || isCurrent || p.name === "desktop";
+
+  if (!c) setProfileNote("先选择一个环境，再查看或切换它的配置方案。");
+  else if (!ready) setProfileNote("正在读取这个环境的配置方案…");
+  else if (running) setProfileNote(curP ? `当前使用「${curP.name}」。DSH 正在运行，停止后才能切换。` : "DSH 正在运行，停止后才能切换配置方案。", "warn");
+  else if (isCurrent) setProfileNote(`「${p.name}」正是当前方案；切换后只会影响插件与启动项。`, "ok");
+  else if (p) setProfileNote(`将切换到「${p.name}」；聊天记录、登录状态和环境目录都不会改变。`);
+  else setProfileNote("没有可切换的方案。可以先新建一个配置方案。");
+}
+function flashProfileCard() {
+  const card = $("#profileCard");
+  if (!card) return;
+  card.classList.remove("updated");
+  void card.offsetWidth;
+  card.classList.add("updated");
+  setTimeout(() => card.classList.remove("updated"), 720);
+}
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m])); }
+
+async function refresh() {
+  const r = await api("/api/state");
+  if (!r.ok) { toast(r.message || "读取状态失败", true); return; }
+  S = r.data;
+  S.anyRunning = S.instances.some(i => i.running);
+  render();
+}
+
+async function loadProfiles() {
+  const c = cur();
+  if (!c) {
+    profHome = ""; profCache = [];
+    $("#profSel").innerHTML = `<option value="">（先选择环境）</option>`;
+    syncProfileControls();
+    return;
+  }
+  const home = c.home, seq = ++profSeq;
+  profHome = "";
+  syncProfileControls();
+  const r = await api("/api/profiles?home=" + encodeURIComponent(c.home));
+  const now = cur();
+  if (seq !== profSeq || !now || now.home !== home) return;
+  profHome = home;
+  profCache = (r.ok && r.data) ? r.data : [];
+  $("#profSel").innerHTML = profCache.map(p =>
+    `<option value="${esc(p.name)}" ${p.current ? "selected" : ""}>${esc(p.name)}${p.current ? "（当前）" : ""}</option>`).join("") || `<option value="">（暂无配置方案）</option>`;
+  const pick = profCache.find(p => p.current) || profCache[0];
+  $("#profSel").value = pick ? pick.name : "";
+  syncProfileControls();
+}
+
+async function act(label, fn, opts) {
+  if (busy) return { ok: false, message: "正在处理，请稍候" };
+  opts = opts || {};
+  busy = true; busyKind = opts.kind || ""; render();
+  let result = { ok: false, message: label + "失败" };
+  try {
+    result = (await fn()) || result;
+    if (!(opts.keepError && !result.ok)) toast(result.message || (result.ok ? label + "完成" : label + "失败"), !result.ok);
+  } catch (e) {
+    result = { ok: false, message: label + "出错: " + e.message };
+    if (!opts.keepError) toast(result.message, true);
+  } finally {
+    busy = false; busyKind = "";
+    try { await refresh(); await loadProfiles(); } catch (e) {}
+  }
+  return result;
+}
+
+// ---- 动作 ----
+let forceTarget = null;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function pickFromDialog(kind, initial, noun) {
+  const launch = kind === "exe" ? "/api/pick-exe" : "/api/pick-folder";
+  const result = kind === "exe" ? "/api/pick-exe-result" : "/api/pick-folder-result";
+  const r = await post(launch, { initial: initial || "" });
+  if (!r.ok) { toast(r.message || "打不开选择框", true); return null; }
+  toast("请在弹出的窗口里选择" + noun + "…");
+  for (let i = 0; i < 240; i++) {
+    await sleep(500);
+    const s = await api(result);
+    if (!s.ok) { toast(s.message || "读取选择结果失败", true); return null; }
+    if (!s.pending) {
+      if (!s.path) { toast("已取消"); return null; }
+      return s.path;
+    }
+  }
+  toast("选择超时", true);
+  return null;
+}
+
+async function startSelected(force, targetHome) {
+  const c = cur();
+  const home = targetHome || (c && c.home);
+  if (!home) return;
+  if (!S.exe) { toast("请先设置 DSH 程序路径", true); await openSettings(); return; }
+  const r = await act(force ? "强制启动" : "启动", () => post("/api/start", { home, force: !!force }), { kind: "start", keepError: !force });
+  if (!force && r && !r.ok) {
+    if (r.data && r.data.health) {
+      forceTarget = home;
+      $("#forceSummary").textContent = r.message || ("配置预检未通过：" + r.data.health.summary);
+      openModal("forceModal", "#forceOk");
+    } else {
+      toast(r.message || "启动失败", true);
+    }
+  }
+}
+
+$("#btnStart").onclick = () => startSelected(false);
+$("#btnStop").onclick = () => act("停止", () => post("/api/stop", {}), { kind: "stop" });
+$("#forceCancel").onclick = () => closeModal("forceModal");
+$("#forceOk").onclick = () => {
+  const home = forceTarget;
+  closeModal("forceModal");
+  if (home) startSelected(true, home);
+};
+$("#btnFolder").onclick = () => act("打开目录", () => post("/api/open", { what: "folder", home: cur().home }));
+$("#btnLog").onclick = () => act("打开日志", () => post("/api/open", { what: "log", home: cur().home }));
+$("#btnQuit").onclick = async () => {
+  if (!confirm("关闭管理界面？（DSH 本身不受影响）")) return;
+  try { await post("/api/quit", {}); } catch (e) {}
+  window.close();
+};
+
+// ---- 设置 ----
+async function openSettings() {
+  setInlineError("setError", "");
+  $("#setExe").value = S.exe || "";
+  $("#setRoot").value = S.instancesRoot || "";
+  $("#setSource").textContent = S.exeSource ? ("程序来源：" + S.exeSource) : "未检测到程序";
+  $("#setExeHint").textContent = S.exe ? ("当前程序：" + S.exe) : "还没有设置程序路径，选择 DeepSeek Harness.exe 后才能启动环境。";
+  openModal("settingsModal", "#setExe");
+}
+async function saveSettings() {
+  const exe = $("#setExe").value.trim();
+  const instancesRoot = $("#setRoot").value.trim();
+  if (!exe) return setInlineError("setError", "请选择 DeepSeek Harness.exe");
+  if (!instancesRoot) return setInlineError("setError", "请填写新建环境时的默认位置");
+  const btn = $("#setSave"), old = btn.textContent;
+  btn.disabled = true; btn.textContent = "保存中…";
+  try {
+    const r = await post("/api/config", { exe, instancesRoot });
+    if (!r.ok) { setInlineError("setError", r.message || "保存失败"); return; }
+    setInlineError("setError", "");
+    closeModal("settingsModal");
+    toast(r.message || "配置已保存");
+    await refresh(); await loadProfiles();
+  } catch (e) {
+    setInlineError("setError", "保存出错：" + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+$("#btnSettings").onclick = openSettings;
+$("#btnSetupNow").onclick = openSettings;
+$("#setCancel").onclick = () => closeModal("settingsModal");
+$("#setSave").onclick = saveSettings;
+$("#setBrowseExe").onclick = async () => {
+  const btn = $("#setBrowseExe"); btn.disabled = true;
+  try {
+    const p = await pickFromDialog("exe", $("#setExe").value.trim(), "程序");
+    if (p) { $("#setExe").value = p; $("#setExeHint").textContent = "已选择：" + p; setInlineError("setError", ""); }
+  } finally { btn.disabled = false; }
+};
+$("#setBrowseRoot").onclick = async () => {
+  const btn = $("#setBrowseRoot"); btn.disabled = true;
+  try {
+    const p = await pickFromDialog("folder", $("#setRoot").value.trim(), "默认位置");
+    if (p) { $("#setRoot").value = p; setInlineError("setError", ""); }
+  } finally { btn.disabled = false; }
+};
+$("#setDetect").onclick = async () => {
+  const btn = $("#setDetect"); btn.disabled = true;
+  try {
+    const r = await post("/api/detect", {});
+    if (r.ok && r.data && r.data.found && r.data.exe) {
+      $("#setExe").value = r.data.exe;
+      $("#setExeHint").textContent = "检测到：" + r.data.exe + (r.data.source ? "（" + r.data.source + "）" : "");
+      setInlineError("setError", "");
+      toast("已填入检测到的程序路径，点保存生效");
+    } else {
+      setInlineError("setError", "没有自动找到程序，请用「浏览…」手动选择");
+    }
+  } catch (e) {
+    setInlineError("setError", "检测出错：" + e.message);
+  } finally { btn.disabled = false; }
+};
+
+// ---- 配置方案（profile）----
+$("#heroProfilePill").onclick = () => {
+  $("#profileCard").scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(() => { if (!$("#profSel").disabled) $("#profSel").focus(); }, 260);
+};
+$("#profUse").onclick = async () => {
+  const p = selectedProfile();
+  if (!p || p.current) return;
+  const name = p.name;
+  const r = await act("切换配置方案", () => post("/api/profile-use", { home: cur().home, name }), { kind: "profile" });
+  if (r.ok) flashProfileCard();
+};
+$("#profSel").onchange = syncProfileControls;
+$("#profRollback").onclick = async () => {
+  if (S.anyRunning) return toast("先停止 DSH，再撤销方案切换", true);
+  if (!confirm("撤销上一次配置方案切换？\n\n会把当前使用的方案恢复到切换前的状态，不影响聊天记录和登录。")) return;
+  const r = await act("撤销上次切换", () => post("/api/profile-rollback", { home: cur().home }));
+  if (r.ok) flashProfileCard();
+};
+$("#profDel").onclick = async () => {
+  const p = selectedProfile();
+  if (!p) return;
+  if (p.name === "desktop") return toast("desktop 方案是保留名，不能删除", true);
+  if (p.current) return toast("当前正在使用的方案不能删除，请先切换到其他方案", true);
+  if (!confirm(`删除配置方案「${p.name}」？\n\n会删除这套方案里的插件配置，但不影响聊天记录、登录状态和环境目录。`)) return;
+  await act("删除配置方案", () => post("/api/profile-del", { home: cur().home, name: p.name }));
+};
+function openNewProfile() {
+  setInlineError("profError", "");
+  const used = new Set(profCache.map(p => p.name));
+  let name = "custom", i = 2;
+  while (used.has(name)) name = "custom-" + (i++);
+  $("#profName").value = name;
+  openModal("profModal", "#profName");
+  setTimeout(() => $("#profName").select(), 40);
+}
+$("#profNew").onclick = openNewProfile;
+$("#profCancel").onclick = () => closeModal("profModal");
+$("#profCreate").onclick = async () => {
+  const name = $("#profName").value.trim();
+  if (!name || name === "." || name === ".." || !/^[A-Za-z0-9._-]+$/.test(name)) {
+    return setInlineError("profError", "名字只能使用英文、数字、点、下划线、横线");
+  }
+  const btn = $("#profCreate"); btn.disabled = true; btn.textContent = "创建中…";
+  try {
+    const r = await post("/api/profile-new", { home: cur().home, name });
+    if (!r.ok) { setInlineError("profError", r.message || "创建失败"); return; }
+    closeModal("profModal");
+    toast(r.message || "已新建配置方案");
+    await refresh(); await loadProfiles();
+    $("#profSel").value = name; syncProfileControls();
+  } catch (e) {
+    setInlineError("profError", "创建出错：" + e.message);
+  } finally { btn.disabled = false; btn.textContent = "创建"; }
+};
+
+// ---- 新建环境（可自选目录）----
+let neTouched = false;
+let neMode = "new";
+function updateNewEnvMode() {
+  [...$("#neSeg").querySelectorAll("button")].forEach(b => b.classList.toggle("active", b.dataset.mode === neMode));
+  const existing = neMode === "existing";
+  $("#neOkText").textContent = existing ? "添加" : "创建";
+  $("#neHomeLabel").textContent = existing ? "已有环境目录（HOME）" : "环境目录（HOME）";
+  $("#neHome").placeholder = existing ? "选择或粘贴已有环境目录" : "留空 = 使用设置里的默认位置（可修改）";
+  $("#neHint").textContent = existing ? "目录必须已经存在；不会创建空环境，也不会改动里面的内容。" : "目录必须不存在或为空。默认位置只是建议，你可以直接改成任意目录。";
+  setInlineError("neError", "");
+}
+function defaultNewHome() {
+  const root = S.instancesRoot || "";
+  if (!root) return "";
+  const name = $("#neName").value.trim();
+  const safe = name && !/[\\/:*?"<>|]/.test(name) ? name : "新环境";
+  return root + "\\" + safe + "\\home";
+}
+function openNewEnv() {
+  neTouched = false; neMode = "new";
+  $("#neName").value = "";
+  $("#neHome").value = defaultNewHome();
+  updateNewEnvMode();
+  openModal("neModal", "#neName");
+}
+function closeNewEnv() { closeModal("neModal"); }
+$("#neName").oninput = () => {
+  if (neMode === "new" && !neTouched) $("#neHome").value = defaultNewHome();
+};
+$("#neHome").oninput = () => { neTouched = true; };
+$("#neCancel").onclick = closeNewEnv;
+[...$("#neSeg").querySelectorAll("button")].forEach(b => {
+  b.onclick = () => {
+    const mode = b.dataset.mode;
+    if (mode === neMode) return;
+    if (mode === "existing" && !neTouched) { $("#neHome").value = ""; neTouched = false; }
+    if (mode === "new" && !$("#neHome").value.trim()) { neTouched = false; $("#neHome").value = defaultNewHome(); }
+    neMode = mode; updateNewEnvMode();
+  };
+});
+$("#neBrowse").onclick = async () => {
+  const btn = $("#neBrowse"); btn.disabled = true;
+  try {
+    const p = await pickFromDialog("folder", $("#neHome").value.trim(), "环境目录");
+    if (p) {
+      $("#neHome").value = p; neTouched = true; setInlineError("neError", "");
+      if (neMode === "existing" && !$("#neName").value.trim()) {
+        const parts = p.split(/[\\/]+/).filter(Boolean);
+        let leaf = parts.pop() || "";
+        if (/^home$/i.test(leaf)) leaf = parts.pop() || "";
+        if (leaf) $("#neName").value = leaf;
+      }
+    }
+  } finally { btn.disabled = false; }
+};
+$("#neOk").onclick = async () => {
+  const name = $("#neName").value.trim();
+  if (!name) return setInlineError("neError", "名字要填");
+  if (/[\\/:*?"<>|]/.test(name)) return setInlineError("neError", '名字不能包含 \\ / : * ? " < > |');
+  const home = $("#neHome").value.trim();
+  if (neMode === "existing" && !home) return setInlineError("neError", "请选择已有环境目录");
+  const btn = $("#neOk"); btn.disabled = true;
+  try {
+    const r = await post("/api/instance-add", { name, home, existing: neMode === "existing" });
+    if (!r.ok) { setInlineError("neError", r.message || "添加失败"); return; }
+    closeNewEnv();
+    toast(r.message || "已添加环境");
+    if (r.data && r.data.home) sel = r.data.home;
+    await refresh(); await loadProfiles();
+  } catch (e) {
+    setInlineError("neError", "添加出错：" + e.message);
+  } finally { btn.disabled = false; }
+};
+$("#btnAdd").onclick = openNewEnv;
+$("#btnRemove").onclick = () => {
+  const c = cur();
+  if (!c) return;
+  if (c.running) return toast("这个环境正在运行，先停止再从列表移除", true);
+  if (!confirm(`从列表移除「${c.name}」？\n\n只移除记录，不删文件；目录仍在：\n${c.home}`)) return;
+  act("移除环境", () => post("/api/instance-remove", { home: c.home, name: c.name }));
+};
+let editTarget = null;
+function openEditEnv() {
+  const c = cur();
+  if (!c) return;
+  editTarget = c.home;
+  $("#editName").value = c.name;
+  $("#editHome").value = c.home;
+  $("#editAgents").value = c.agents || "";
+  $("#editHome").disabled = !!c.running;
+  $("#editHome").title = c.running ? "运行中的环境不能修改目录" : "";
+  setInlineError("editError", "");
+  openModal("editModal", "#editName");
+}
+$("#btnEdit").onclick = openEditEnv;
+$("#editCancel").onclick = () => closeModal("editModal");
+$("#editSave").onclick = async () => {
+  if (!editTarget) return;
+  const name = $("#editName").value.trim();
+  const home = $("#editHome").value.trim();
+  const agents = $("#editAgents").value.trim();
+  if (!name) return setInlineError("editError", "名字不能为空");
+  if (/[\\/:*?"<>|]/.test(name)) return setInlineError("editError", '名字不能包含 \\ / : * ? " < > |');
+  if (!home) return setInlineError("editError", "环境目录不能为空");
+  const btn = $("#editSave"); btn.disabled = true; btn.textContent = "保存中…";
+  try {
+    const r = await post("/api/instance-save", { oldHome: editTarget, name, home, agents });
+    if (!r.ok) { setInlineError("editError", r.message || "保存失败"); return; }
+    editTarget = null;
+    closeModal("editModal");
+    toast(r.message || "已保存");
+    if (r.data && r.data.home) sel = r.data.home;
+    await refresh(); await loadProfiles();
+  } catch (e) {
+    setInlineError("editError", "保存出错：" + e.message);
+  } finally { btn.disabled = false; btn.textContent = "保存"; }
+};
+
+// ---- 环境迁移（真正搬目录，不只是改记录）----
+let migrateTarget = null;
+let migrateAgentsTouched = false;
+
+function sameClientPath(a, b) {
+  const norm = p => String(p || "").replace(/[\\/]+/g, "\\").replace(/\\+$/, "").toLowerCase();
+  return !!norm(a) && norm(a) === norm(b);
+}
+function pathInsideClient(child, parent) {
+  const norm = p => String(p || "").replace(/[\\/]+/g, "\\").replace(/\\+$/, "").toLowerCase();
+  const c = norm(child), p = norm(parent);
+  return !!c && !!p && (c === p || c.startsWith(p + "\\"));
+}
+function suggestedMigrateHome(c) {
+  const home = String(c.home || "").replace(/[\\/]+$/, "");
+  const leaf = home.split(/[\\/]/).pop() || "home";
+  const parent = home.slice(0, Math.max(0, home.length - leaf.length - 1));
+  const safeName = String(c.name || "environment").replace(/[\\/:*?"<>|]/g, "_");
+  const container = /^home$/i.test(leaf) ? parent : home;
+  const containerLeaf = container.split(/[\\/]/).pop() || safeName;
+  const containerParent = container.slice(0, Math.max(0, container.length - containerLeaf.length - 1));
+  return (containerParent ? containerParent + "\\" : "") + safeName + "-moved\\home";
+}
+function suggestedMigrateAgents(c, newHome) {
+  const home = String(newHome || "").replace(/[\\/]+$/, "");
+  const leaf = home.split(/[\\/]/).pop() || "home";
+  const parent = home.slice(0, Math.max(0, home.length - leaf.length - 1));
+  if (leaf.toLowerCase() === "home" && parent) return parent + "\\agents";
+  return home + "-agents";
+}
+function syncMigrateAgents() {
+  const on = $("#migrateAgents").checked && !$("#migrateAgents").disabled;
+  $("#migrateAgentsPath").disabled = !on;
+  $("#migrateBrowseAgents").disabled = !on;
+  $("#migrateAgentsField").classList.toggle("disabled", !on);
+}
+function openMigrateEnv() {
+  const c = cur();
+  if (!c) return;
+  migrateTarget = c.home;
+  migrateAgentsTouched = false;
+  const from = String(c.home || "");
+  const agents = String(c.agents || "");
+  const inside = agents && pathInsideClient(agents, from);
+  const shared = agents && S.instances.find(i => i.name !== c.name && sameClientPath(i.agents, agents));
+  const newHome = suggestedMigrateHome(c);
+
+  $("#migrateName").textContent = c.name;
+  $("#migrateFrom").textContent = from;
+  $("#migrateHome").value = newHome;
+  $("#migrateAgentsPath").value = agents ? suggestedMigrateAgents(c, newHome) : "";
+  $("#migrateRetire").checked = false;
+  const box = $("#migrateAgents"), help = $("#migrateAgentsHelp");
+  box.checked = false;
+  box.disabled = !agents || inside || !!shared;
+  if (!agents) help.textContent = "当前环境没有设置独立技能目录。";
+  else if (inside) help.textContent = "技能目录在环境目录内，会随环境一起迁移，无需单独勾选。";
+  else if (shared) help.textContent = `技能目录与「${shared.name}」共用，不能单独迁走；它会保持原位置。`;
+  else help.textContent = "把独立的 agents 目录也搬到新位置；不勾选则保持原样。";
+  syncMigrateAgents();
+  setInlineError("migrateError", "");
+  openModal("migrateModal", "#migrateHome");
+}
+$("#btnMigrate").onclick = openMigrateEnv;
+$("#migrateCancel").onclick = () => closeModal("migrateModal");
+$("#migrateAgents").onchange = syncMigrateAgents;
+$("#migrateAgentsPath").oninput = () => { migrateAgentsTouched = true; };
+$("#migrateHome").oninput = () => {
+  if (!migrateAgentsTouched && !$("#migrateAgents").disabled) {
+    $("#migrateAgentsPath").value = suggestedMigrateAgents(cur(), $("#migrateHome").value.trim());
+  }
+};
+$("#migrateBrowseHome").onclick = async () => {
+  const btn = $("#migrateBrowseHome"); btn.disabled = true;
+  try {
+    const p = await pickFromDialog("folder", $("#migrateHome").value.trim(), "新环境目录");
+    if (p) {
+      $("#migrateHome").value = p;
+      if (!migrateAgentsTouched && !$("#migrateAgents").disabled) {
+        $("#migrateAgentsPath").value = suggestedMigrateAgents(cur(), p);
+      }
+      setInlineError("migrateError", "");
+    }
+  } finally { btn.disabled = false; }
+};
+$("#migrateBrowseAgents").onclick = async () => {
+  const btn = $("#migrateBrowseAgents"); btn.disabled = true;
+  try {
+    const p = await pickFromDialog("folder", $("#migrateAgentsPath").value.trim(), "新技能目录");
+    if (p) { $("#migrateAgentsPath").value = p; migrateAgentsTouched = true; setInlineError("migrateError", ""); }
+  } finally { btn.disabled = false; }
+};
+$("#migrateOk").onclick = async () => {
+  if (!migrateTarget) return;
+  const c = cur();
+  const newHome = $("#migrateHome").value.trim();
+  const moveAgents = $("#migrateAgents").checked && !$("#migrateAgents").disabled;
+  const agents = moveAgents ? $("#migrateAgentsPath").value.trim() : "";
+  if (!newHome) return setInlineError("migrateError", "请填写新环境目录");
+  if (!/^(?:[A-Za-z]:[\\/]|\\\\)/.test(newHome)) return setInlineError("migrateError", "请填写绝对路径，例如 D:\\dsh\\work\\home");
+  if (sameClientPath(newHome, c.home)) return setInlineError("migrateError", "新目录和当前目录相同，不需要迁移");
+  if (pathInsideClient(newHome, c.home) || pathInsideClient(c.home, newHome)) {
+    return setInlineError("migrateError", "新目录不能放在当前环境里面，也不能包含当前环境");
+  }
+  if (moveAgents && !agents) return setInlineError("migrateError", "请填写新技能目录");
+  if (moveAgents && !/^(?:[A-Za-z]:[\\/]|\\\\)/.test(agents)) return setInlineError("migrateError", "技能目录要填绝对路径");
+
+  const btn = $("#migrateOk"), oldText = $("#migrateOkText").textContent;
+  busy = true; busyKind = "migrate"; render();
+  btn.disabled = true; $("#migrateOkText").textContent = "迁移中…";
+  try {
+    const r = await post("/api/instance-migrate", {
+      oldHome: migrateTarget, newHome, agents,
+      migrateAgents: moveAgents, retireSource: $("#migrateRetire").checked
+    });
+    if (!r.ok) { setInlineError("migrateError", r.message || "迁移失败"); return; }
+    closeModal("migrateModal");
+    if (r.data && r.data.home) sel = r.data.home;
+    toast(r.message || "迁移完成");
+    migrateTarget = null;
+    await refresh(); await loadProfiles();
+    if ($("#migrateRetire").checked) await loadTrash();
+  } catch (e) {
+    setInlineError("migrateError", "迁移出错：" + e.message);
+  } finally {
+    busy = false; busyKind = "";
+    $("#migrateOkText").textContent = oldText;
+    btn.disabled = false;
+    try { render(); } catch (e) {}
+  }
+};
+
+// ---- 抽屉：插件与技能 ----
+async function openInventory() {
+  const c = cur(); if (!c) return;
+  $("#sheetTitle").textContent = "插件与技能 —— " + c.name;
+  $("#sheetBody").innerHTML = `<div class="empty">读取中…</div>`;
+  $("#drawer").classList.add("open");
+  const r = await api("/api/inventory?home=" + encodeURIComponent(c.home));
+  if (!r.ok) { $("#sheetBody").innerHTML = `<div class="empty">读取失败：${esc(r.message)}</div>`; return; }
+  const plugins = Array.isArray(r.data.plugins) ? r.data.plugins : [];
+  const skills = Array.isArray(r.data.skills) ? r.data.skills : [];
+  const kindLabel = { bundle: "插件包", dep: "依赖", installed: "已安装" };
+  const kindOrder = { bundle: 0, dep: 1, installed: 2 };
+  const groups = new Map();
+  plugins.forEach(p => {
+    if (!p || !p.name) return;
+    const key = String(p.name).toLowerCase();
+    let g = groups.get(key);
+    if (!g) { g = { name: String(p.name), profiles: [], kinds: [], notes: [] }; groups.set(key, g); }
+    if (p.profile && !g.profiles.includes(p.profile)) g.profiles.push(p.profile);
+    if (p.kind && !g.kinds.includes(p.kind)) g.kinds.push(p.kind);
+    if (p.note && !g.notes.includes(p.note)) g.notes.push(p.note);
+  });
+  const rows = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+  const pl = rows.length ? `<table><thead><tr><th style="width:120px">配置方案</th><th style="width:150px">类型</th><th style="width:240px">名称</th><th>说明</th></tr></thead><tbody>
+    ${rows.map(p => {
+      const kinds = p.kinds.slice().sort((a, b) => (kindOrder[a] ?? 9) - (kindOrder[b] ?? 9)).map(k => kindLabel[k] || k).join(" / ");
+      return `<tr><td class="mono">${esc(p.profiles.join("、"))}</td><td>${esc(kinds)}</td><td class="mono">${esc(p.name)}</td><td class="mono">${esc(p.notes.join("；"))}</td></tr>`;
+    }).join("")}
+  </tbody></table>` : `<div class="empty">这个环境还没有第三方插件（只有官方基础包）</div>`;
+  const sk = skills.length ? `<table><thead><tr><th style="width:80px">来源</th><th style="width:200px">名称</th><th>说明</th></tr></thead><tbody>
+    ${skills.map(s => `<tr><td>${esc(s.src)}</td><td class="mono">${esc(s.name)}</td><td>${esc(s.desc)}</td></tr>`).join("")}
+  </tbody></table>` : `<div class="empty">这个环境还没有技能（和刚安装时一样）</div>`;
+  $("#sheetBody").innerHTML = `<div class="sec-title">插件 ${rows.length ? "(" + rows.length + ")" : ""}</div>${pl}
+    <div class="sec-title">技能 ${skills.length ? "(" + skills.length + ")" : ""}</div>${sk}`;
+}
+function closeDrawer() { $("#drawer").classList.remove("open"); }
+$("#btnInv").onclick = openInventory;
+
+// ---- 桌面快捷方式 ----
+async function loadShortcuts() {
+  const box = $("#scList");
+  const r = await api("/api/shortcuts");
+  if (!r.ok) { box.innerHTML = `<div class="empty">读取失败：${esc(r.message)}</div>`; return; }
+  const list = (r.data || []).slice().sort((a, b) => (Number(!!b.self) - Number(!!a.self)) || String(a.name || "").localeCompare(String(b.name || ""), "zh-CN"));
+  if (!list.length) { box.innerHTML = `<div class="empty">桌面上没有 DSH 相关的快捷方式</div>`; return; }
+  box.innerHTML = list.map(s => `
+    <div class="sc-row ${s.hidden ? "off" : ""}">
+      <span class="sc-name">${esc(s.name)}</span>
+      <span class="sc-tag ${s.self ? "self" : ""}">${s.self ? "管理器入口" : esc(s.area)}</span>
+      <span class="sc-target" title="${esc(s.target || s.path)}">${esc(s.target || s.path)}</span>
+      ${s.self ? `<button class="btn btn-sm" disabled title="管理器自己的入口不能隐藏">受保护</button>` : `<button class="btn btn-sm" data-path="${esc(s.path)}" data-hide="${s.hidden ? "0" : "1"}">${s.hidden ? "显示" : "隐藏"}</button>`}
+    </div>`).join("");
+  [...box.querySelectorAll("button")].forEach(b => {
+    b.onclick = async () => {
+      b.disabled = true;
+      const rr = await post("/api/shortcuts-toggle", { path: b.dataset.path, hide: b.dataset.hide === "1" });
+      toast(rr.message || (rr.ok ? "完成" : "失败"), !rr.ok);
+      await loadShortcuts();
+    };
+  });
+}
+
+// ---- 删除环境目录（进回收站）----
+let delTarget = null;
+function openDelDir() {
+  const c = cur();
+  if (!c) return;
+  if (S.anyRunning) return toast("还有环境在运行，先停止再删", true);
+  delTarget = c;
+  $("#delName").textContent = c.name;
+  $("#delInfo").textContent = `目录：${c.home}　（${c.plugins} 插件 / ${c.skills} 技能）`;
+  $("#delConfirm").value = "";
+  openModal("delModal", "#delConfirm");
+}
+function closeDelDir() { closeModal("delModal"); }
+$("#delCancel").onclick = closeDelDir;
+$("#btnDelDir").onclick = openDelDir;
+$("#delOk").onclick = async () => {
+  if (!delTarget) return;
+  const typed = $("#delConfirm").value.trim();
+  if (typed !== delTarget.name) return toast("名字不一致，已取消", true);
+  const home = delTarget.home, name = delTarget.name;
+  closeDelDir();
+  await act("删除目录", () => post("/api/instance-delete", { home, name, confirm: typed }));
+  await loadTrash();
+};
+
+// ---- 回收站 ----
+async function loadTrash() {
+  const box = $("#trashList");
+  const r = await api("/api/trash");
+  if (!r.ok) { box.innerHTML = `<div class="empty">读取失败</div>`; return; }
+  const list = r.data || [];
+  if (!list.length) { box.innerHTML = `<div class="empty">空</div>`; return; }
+  box.innerHTML = list.map(t => `
+    <div class="sc-row">
+      <span class="sc-name">${esc(t.name)}</span>
+      <span class="sc-target" title="${esc(t.original)}">${esc(t.original)}</span>
+      <span class="sc-tag">${(t.sizeBytes / 1048576).toFixed(1)} MB</span>
+      <button class="btn btn-sm" data-restore="${esc(t.trash)}">恢复</button>
+    </div>`).join("") +
+    `<div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn btn-sm btn-danger" id="trashClear">清空回收站</button></div>`;
+  [...box.querySelectorAll("[data-restore]")].forEach(b => {
+    b.onclick = async () => {
+      b.disabled = true;
+      const rr = await post("/api/trash-restore", { trash: b.dataset.restore });
+      toast(rr.message || (rr.ok ? "已恢复" : "失败"), !rr.ok);
+      await loadTrash(); await refresh();
+    };
+  });
+  const cb = $("#trashClear");
+  if (cb) cb.onclick = async () => {
+    const v = prompt("清空回收站会真正删除这些目录，不可恢复。\n输入「清空」继续：", "");
+    if (v !== "清空") return toast("已取消", true);
+    const rr = await post("/api/trash-clear", { confirm: "清空" });
+    toast(rr.message || "", !rr.ok);
+    await loadTrash();
+  };
+}
+
+(async function boot() {
+  await refresh();
+  await loadProfiles();
+  await loadShortcuts();
+  await loadTrash();
+  if (location.hash === "#inventory") openInventory();   // 用于自动化截图
+  if (location.hash === "#migrate") openMigrateEnv();
+  if (location.hash === "#settings") openSettings();
+  setInterval(() => { if (!window.__offline) refresh().catch(() => {}); }, 2500);
+  setInterval(ping, 3000);
+})();
+</script>
+</body>
+</html>
